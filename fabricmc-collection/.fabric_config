@@ -1,0 +1,18 @@
+# This is a comment
+# Core mods (optimizations)
+fabric-api=0.46.1+1.18
+ferritecore=4.0.0
+indium=1.0.2-alpha2+mc1.18.1
+iris=1.18.x-v1.2.0
+lambdynamiclights=2.1.0+1.17
+lithium=mc1.18.1-0.7.7
+mod-menu=3.0.1
+sodium=mc1.18.1-0.4.0-alpha6
+starlight=Starlight 1.0.0 1.18.x
+
+# Recommendations
+# complementary shaders
+# effective
+# falling leaves
+# better third person
+# sound physics remastered
