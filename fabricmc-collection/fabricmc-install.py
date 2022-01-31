@@ -13,16 +13,16 @@ from tempfile import NamedTemporaryFile
 # https://stackoverflow.com/questions/16694907/download-large-file-in-python-with-requests
 
 program_name = "FabricMC Installer"
-program_version = "v0.1"
+program_version = "v1.0"
 program_author = "Andrei N. Onea"
 
 
 class Configuration:
-  def __init__(self, mods_list, custom_loader_version, custom_minecraft_version, use_snapshots):
-    self.mods_list = mods_list
-    self.custom_loader_version = custom_loader_version
-    self.custom_minecraft_version = custom_minecraft_version
-    self.use_snapshots = use_snapshots
+    def __init__(self, mods_list, custom_loader_version, custom_minecraft_version, use_snapshots):
+        self.mods_list = mods_list
+        self.custom_loader_version = custom_loader_version
+        self.custom_minecraft_version = custom_minecraft_version
+        self.use_snapshots = use_snapshots
 
 
 # Parse a configuration FILE argument.
@@ -30,7 +30,6 @@ class Configuration:
 # Maybe some day it will work with >=
 # or it will have proper dependencies...
 def validate_config_file(path: str) -> str:
-    print (path)
     try:
         file = open (path, 'r')
 
@@ -39,9 +38,22 @@ def validate_config_file(path: str) -> str:
         custom_minecraft_version = None
         use_snapshots = False
 
+        syntax_error = {
+            "line_num": 0,
+            "line_text": None
+        }
         for line in file:
-            if line.startswith("#"):
+            syntax_error["line_num"] += 1
+            line = line.strip () # Get rid of line endings.
+            if line.startswith ('#') or not line: # ignore comments and blank lines
                 continue
+            eq_index = line.find ('=')
+            if eq_index < 1: # if there is nothing on the left side of '=' or not found 
+                syntax_error["line_text"] = f"'{line}': format should be '<mod>=<version>'"
+                break
+            if eq_index == len (line) - 1: # if there is nothing on the right side of '='
+                syntax_error["line_text"] = f"'{line}': mod version is required"
+                break
             pair = line.split ('=', maxsplit=1)
             if pair[0] == "minecraft":
                 custom_minecraft_version = pair[1]
@@ -52,11 +64,12 @@ def validate_config_file(path: str) -> str:
             pair[1] = pair[1].strip() # Strip \n on Windows
             mods_list.append (pair)
 
+        if syntax_error["line_text"]:
+            raise Exception (f"invalid syntax line {syntax_error['line_num']}: {syntax_error['line_text']}")
         if not mods_list:
             raise Exception ("mods list is empty")
 
         return Configuration (mods_list, custom_loader_version, custom_minecraft_version, use_snapshots)
-
     except Exception as err:
         raise argparse.ArgumentTypeError(f"path does not lead to a valid configuration\nmessage: {err}.")
 
@@ -229,15 +242,29 @@ if __name__ == '__main__':
     mods_dir = os.path.join (mc_dir, "mods")
     default_config_path = os.path.join (mc_dir, ".fabric_config")
 
-    parser = argparse.ArgumentParser(description=f"""
-        {program_name} {program_version}{os.linesep}
-        Copyright (C) 2021 {program_author}
-        Utility script that installs Fabric Loader and mods found in a config file.
-    """)
+    prog_description = f"""
+{program_name} {program_version}
+Copyright (C) 2021 {program_author}
+Utility script that installs Fabric Loader and Fabric mods found in a config file.
 
-    parser.add_argument ("--file", metavar="CONFIGURATION", type=validate_config_file, default=default_config_path,
-        help="""path to the configuration file holding the mods --
-                Fabric Loader must be the first.""")
+synopsis:
+    The script queries for mods on Modrinth.
+    Check availability on https://modrinth.com/mods?q= and extract the mod title
+and the version string that you want. Make sure the configuration file is formatted as such:
+        <mod_title>=<version>
+
+    The title can be any easily-identifiable name, but the version must match exactly.
+    Be aware that title mismatches are possible.
+"""
+
+    parser = argparse.ArgumentParser(description=prog_description, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument ("-i", "--input",
+        dest="file",
+        metavar="FILE",
+        type=validate_config_file,
+        default=default_config_path,
+        help="path to the configuration file holding the mods")
+
     args = parser.parse_args ()
 
     sys.exit(main(args.file))
